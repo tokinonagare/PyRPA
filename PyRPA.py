@@ -100,6 +100,7 @@ moved = False  # 之前是否使用移动
 JumpLine = -1  # 行跳转标识  可实现某些行间的循环 跳转后继续顺序执行
 theme = 0  # 主题
 
+
 def resource_path(relative_path):
     if getattr(sys, 'frozen', False):  # 是否Bundle Resource
         base_path = sys._MEIPASS
@@ -206,33 +207,6 @@ def Analysis(PicName, location):
                 os.mkdir('Screenshot')
             ShotImgpath = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S ")}.png'
             pyautogui.screenshot().save(ShotImgpath)
-        elif NowRowKey[local] == '截传奇窗口':
-            print('截传奇窗口')
-            if os.path.exists('Screenshot') is not True:
-                os.mkdir('Screenshot')
-            from_control = FormControl()
-            from_control.bindWindowByName('MIRMG(1)')
-            from_control.WindowActive()
-            from_control.bindActiveWindow()
-            from_control.MoveTo(0,0)
-
-            screen_shot_img_path = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S")}.png'
-            pyautogui.screenshot().save(screen_shot_img_path)
-
-            import cv2
-
-            img = cv2.imread(screen_shot_img_path)
-            cropped = img[350:450, 900:1100]  # 裁剪坐标为[y0:y1, x0:x1]
-            # cropped = img[385:445, 980:1060]  # 裁剪坐标为[y0:y1, x0:x1]
-            # cropped = img[350:380, 1205:1215]  # 裁剪坐标为[y0:y1, x0:x1]
-
-            cv2.imwrite(screen_shot_img_path, cropped)
-            find_number = FindNumber()
-            find_number.get_number_list(screen_shot_img_path)
-            number = find_number.get_number()
-
-            print(number)
-
         elif NowRowKey[local] == '热键':
             ReplaceStr = NowRowValue[local].replace('=', '+')
             ReplaceStr = ReplaceStr.replace('+', '-')
@@ -397,7 +371,9 @@ def DataCheck(sheet):
             return True
         else:
             mylog('！第 ' + str(nowrow + 1), '行 动作队列异常')
-            pyautogui.alert(text='！第 ' + str(nowrow + 1) + ' 行 ' + LineValue[line] + ' 列动作队列有问题，程序无法继续运行', title=MSGWindowName)
+            pyautogui.alert(
+                text='！第 ' + str(nowrow + 1) + ' 行 ' + LineValue[line] + ' 列动作队列有问题，程序无法继续运行',
+                title=MSGWindowName)
             return False
 
     for nowrow in range(1, sheet.nrows):
@@ -439,6 +415,35 @@ def DataCheck(sheet):
     return True
 
 
+def is_available_for_purchase(lowest_price):
+    if os.path.exists('Screenshot') is not True:
+        os.mkdir('Screenshot')
+    from_control = FormControl()
+    from_control.bindWindowByName('MIRMG(1)')
+    from_control.WindowActive()
+    from_control.bindActiveWindow()
+    from_control.MoveTo(0, 0)
+
+    screen_shot_img_path = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S")}.png'
+    pyautogui.screenshot().save(screen_shot_img_path)
+
+    import cv2
+
+    img = cv2.imread(screen_shot_img_path)
+    # 需要游戏窗口大小为1550*800
+    cropped = img[350:450, 900:1100]  # 裁剪坐标为[y0:y1, x0:x1]
+    # cropped = img[385:445, 980:1060]  # 裁剪坐标为[y0:y1, x0:x1]
+    # cropped = img[350:380, 1205:1215]  # 裁剪坐标为[y0:y1, x0:x1]
+
+    cv2.imwrite(screen_shot_img_path, cropped)
+    find_number = FindNumber()
+    find_number.get_number_list(screen_shot_img_path)
+    actual_price = find_number.get_price()
+    print(actual_price)
+    print(lowest_price)
+    return actual_price < lowest_price
+
+
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet
 def workspace(sheet):
@@ -453,6 +458,13 @@ def workspace(sheet):
         if sheet.row(CurrentROW)[1].value == 1:  # 该行是否启用
             mylog('--------------work start--------------')
             mylog('EXCEL ROW ', CurrentROW + 1)
+
+            price = sheet.row(CurrentROW)[7].value
+            if price is not None:  # 因为价格判断和点击本身没任何关系
+                is_available = is_available_for_purchase(price)
+                print('是否可购买', is_available)
+                return
+
             SourceStr = sheet.row(CurrentROW)[6].value
             mylog('EXCEL Str: ', SourceStr)
             ReplaceStr = SourceStr.replace(',', '，')
@@ -645,7 +657,7 @@ def ThreadShowUIAndManageEvent():
     # 设置缩放因子
     mylog('当前系统缩放：', ScaleFactor, ' %')
     if ScaleFactor > 100:
-        ComboxWidth = 24 - int(24 * (ScaleFactor-100)/100)
+        ComboxWidth = 24 - int(24 * (ScaleFactor - 100) / 100)
     else:
         ComboxWidth = 24
     Top.tk.call('tk', 'scaling', ScaleFactor / 85)
@@ -677,7 +689,9 @@ def ThreadShowUIAndManageEvent():
 
         if '.xls' not in FilesList:
             mylog('！路径' + WorkPath + ' 下可能没有任务表，程序无法继续运行，\n请添加表格或者删除任务文件夹')
-            pyautogui.alert(text='！路径' + WorkPath + ' 下可能没有任务表，程序无法继续运行，\n请添加表格或者删除任务文件夹', title=MSGWindowName)
+            pyautogui.alert(
+                text='！路径' + WorkPath + ' 下可能没有任务表，程序无法继续运行，\n请添加表格或者删除任务文件夹',
+                title=MSGWindowName)
             # tkinter.messagebox.showinfo(title='PyRPA: ', message='！路径' + WorkPath + '下可能没有任务表，程序无法继续运行，\n请添加表格或者删除任务文件夹', icon='error')
             KillSelf()
         NowDirXlsPath = glob2.glob(WorkPath + '\\*.xls')[0]  # 弱水三千只取一瓢饮
@@ -863,7 +877,7 @@ def WriteIcon():
     file = open(IconPath, 'wb')
     file.write(img)
     file.close()
- 
+
 
 #  @ 功能：禁用控制台应用的关闭窗口
 #  @ 备注：因为控制台的关闭事件不好捕获，直接禁用掉
@@ -877,6 +891,8 @@ def DisableCloseButton():
         if wnd is not None:
             menu = wnd.GetSystemMenu()
             menu.DeleteMenu(win32con.SC_CLOSE, win32con.MF_BYCOMMAND)
+
+
 autoruntaskdir = ''
 
 
@@ -931,10 +947,10 @@ if __name__ == '__main__':
 
         if autoruntaskdir != '':
             mylog('自动运行模式，运行任务文件夹：', autoruntaskdir)
-            time.sleep(0.5)   # 这个等待非常重要 等待上面操作结束
+            time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
             StatusText = '准备'
             begin_working()
-            time.sleep(0.5)   # 这个等待非常重要 等待上面操作结束
+            time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
 
         while running == -1:
             time.sleep(0.1)
@@ -975,4 +991,3 @@ if __name__ == '__main__':
         running = -1
         mutex.release()
         MainWork()
-

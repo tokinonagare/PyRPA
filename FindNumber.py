@@ -28,13 +28,12 @@ class FindNumber(object):
         result = []
         for cnt in contours:
             [x, y, w, h] = cv2.boundingRect(cnt)
-            print(x,y,w,h)
             # 按照高度筛选
-            if 12 >= h >= 10:
+            if h == 11 and w == 7:
                 result.append([x, y, w, h])
 
         result.sort(key=lambda x: x[0])
-        # print('result', result)
+        print('寻找到的数字坐标：', result)
         numbers = []
         for x, y, w, h in result:
             # 在画面中标记识别的结果
@@ -45,13 +44,14 @@ class FindNumber(object):
                 score = cv2.matchTemplate(digit, t, cv2.TM_CCORR_NORMED)
                 res.append((i, score[0]))
             res.sort(key=lambda x: x[1])
-            cv2.putText(im, str(f"{res[-1][0]}"), (x, y+35), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
-            cv2.imshow('Digits OCR Test', im)
+            # print('res', res)
+            # cv2.putText(im, str(f"{res[-1][0]}"), (x, y+35), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0))
+            # cv2.imshow('Digits OCR Test', im)
             numbers.append(res[-1][0])
-        print('numbers', numbers)
+        print('识别到的数字：', numbers)
         self.numbers = numbers
 
-    def get_number(self):
+    def get_price(self):
         number_count = len(self.numbers)
         number = 0
         if number_count <= 0:
@@ -71,5 +71,5 @@ class FindNumber(object):
                 current_number = self.numbers[i]
                 if current_number != 0:
                     number += self.numbers[i] * 10 ** (number_count - (i + 1))
-        print('number', number)
+        print('每个价格：', number)
         return number

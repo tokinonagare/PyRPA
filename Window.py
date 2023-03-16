@@ -6,13 +6,19 @@ import win32ui
 from ctypes import *
 from ctypes import wintypes
 
-GetForegroundWindow = windll.user32.GetForegroundWindow
-GetWindowRect = windll.user32.GetWindowRect
-SetForegroundWindow = windll.user32.SetForegroundWindow
-GetWindowText = windll.user32.GetWindowTextA
-MoveWindow = windll.user32.MoveWindow
-EnumWindows = windll.user32.EnumWindows
-ChangeWindow = windll.user32.SetWindowPos
+user32 = WinDLL('user32', use_last_error=True)
+
+GetForegroundWindow = user32.GetForegroundWindow
+GetWindowRect = user32.GetWindowRect
+SetForegroundWindow = user32.SetForegroundWindow
+GetWindowText = user32.GetWindowTextA
+MoveWindow = user32.MoveWindow
+EnumWindows = user32.EnumWindows
+SetWindowPos = user32.SetWindowPos
+
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0X0002
+SWP_NOZORDER = 0x0004
 
 class RECT(Structure):
     _fields_ = [
@@ -30,7 +36,11 @@ class POINT(Structure):
     ]
 
 
-class FormControl(object):
+def errcheck(result, func, args):
+    if not result:
+        raise WinError(get_last_error())
+
+class WindowControl(object):
     def __init__(self):
         self.win_hd = ''
         self.win_title = 'MIRMG(1)'
@@ -41,14 +51,15 @@ class FormControl(object):
         """
         self.win_hd = GetForegroundWindow()
 
-    def bindWindowByName(self, win_name):
+    def bind_by_name(self, win_name):
         """
         函数功能：根据窗体名获取窗体句柄
         """
         self.win_title = win_name
-        pro_fun_type = CFUNCTYPE(c_bool, c_int, c_long)
-        pro_fun_p = pro_fun_type(self.EnumWindowsProc)
-        EnumWindows(pro_fun_p, None)
+        self.win_hd = win32gui.FindWindow(None, win_name)
+        # pro_fun_type = CFUNCTYPE(c_bool, c_int, c_long)
+        # pro_fun_p = pro_fun_type(self.EnumWindowsProc)
+        # EnumWindows(pro_fun_p, None)
 
     def getWinRect(self):
         """
@@ -75,6 +86,17 @@ class FormControl(object):
         pos.x = x + rect.left
         pos.y = y + rect.top
         return pos
+
+    def resize(self, width, height):
+        """设置窗口大小为width × height
+
+        Args:
+            width (int): 宽
+            height (int): 高
+        """
+        SetWindowPos.errcheck = errcheck
+        response = SetWindowPos(self.win_hd, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER)
+        print('resize_client response', response)
 
     def toWindowPos(self,x,y):
         """
@@ -113,27 +135,17 @@ class FormControl(object):
         value=buffer.value.decode('gbk')
         return value
 
-    def MoveTo(self,x,y):
+    def move(self, x, y):
         """
         函数功能：移动窗体到指定坐标位置
         """
         if self.win_hd is None:
             return None
         rect = self.getWinRect()
-        MoveWindow(self.win_hd,x,y,rect.right-rect.left,rect.bottom-rect.top,True)
-
-    def ChangeTo(self,x,y,w,h):
-        """
-        改变窗口大小和位置
-        :param x:
-        :param y:
-        :param w:
-        :param h:
-        :return:
-        """
-        if self.win_hd is None:
-            return None
-        ChangeWindow(self.win_hd,'HWND_TOP',x,y,w,h,'SWP_SHOWWINDOW')
+        print('游戏窗体位置和大小', rect)
+        MoveWindow.errcheck = errcheck
+        response = MoveWindow(self.win_hd,x,y,rect.right-rect.left,rect.bottom-rect.top,True)
+        print('MoveTo response', response)
 
     def WinCapture(self,path,x,y,w,h):
         """

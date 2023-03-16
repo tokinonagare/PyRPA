@@ -29,7 +29,7 @@ import win32ui
 from playsound import playsound
 
 # 识别数字相关依赖
-from Window import FormControl
+from Window import WindowControl
 from FindNumber import FindNumber
 
 '''https://pypi.org/project/PyAutoGUI/'''
@@ -415,20 +415,24 @@ def DataCheck(sheet):
     return True
 
 
+def set_window():
+    """
+    将游戏窗口放到（0，0）并将分辨率改为 1550*800
+    :return:
+    """
+    window_control = WindowControl()
+    window_control.bind_by_name('MIRMG(1)')
+    window_control.move(0, 0)
+    window_control.resize(1550, 800)
+
+
 def is_available_for_purchase(lowest_price):
     if os.path.exists('Screenshot') is not True:
         os.mkdir('Screenshot')
-    from_control = FormControl()
-    from_control.bindWindowByName('MIRMG(1)')
-    from_control.WindowActive()
-    from_control.bindActiveWindow()
-    from_control.MoveTo(0, 0)
-
     screen_shot_img_path = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S")}.png'
     pyautogui.screenshot().save(screen_shot_img_path)
 
     import cv2
-
     img = cv2.imread(screen_shot_img_path)
     # 需要游戏窗口大小为1550*800
     cropped = img[350:450, 900:1100]  # 裁剪坐标为[y0:y1, x0:x1]
@@ -458,6 +462,9 @@ def workspace(sheet):
         if sheet.row(CurrentROW)[1].value == 1:  # 该行是否启用
             mylog('--------------work start--------------')
             mylog('EXCEL ROW ', CurrentROW + 1)
+
+            # 调整好游戏窗口
+            set_window()
 
             price = sheet.row(CurrentROW)[7].value
             if price is not None:  # 因为价格判断和点击本身没任何关系
@@ -945,12 +952,12 @@ if __name__ == '__main__':
             keyboard.add_hotkey(StopKey, finished_working)
         mylog('等待热键按下,或点击开始')
 
-        if autoruntaskdir != '':
-            mylog('自动运行模式，运行任务文件夹：', autoruntaskdir)
-            time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
-            StatusText = '准备'
-            begin_working()
-            time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
+        # if autoruntaskdir != '':
+        #     mylog('自动运行模式，运行任务文件夹：', autoruntaskdir)
+        #     time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
+        #     StatusText = '准备'
+        #     begin_working()
+        #     time.sleep(0.5)  # 这个等待非常重要 等待上面操作结束
 
         while running == -1:
             time.sleep(0.1)
@@ -973,9 +980,9 @@ if __name__ == '__main__':
                     break
                 RunCounter -= 1
         mylog('EXCEL遍历结束')
-        if autoruntaskdir != '':
-            mylog('自动模式运行结束 杀死自己')  # 调试模式下将不起作用
-            KillSelf()
+        # if autoruntaskdir != '':
+        #     mylog('自动模式运行结束 杀死自己')  # 调试模式下将不起作用
+        #     KillSelf()
 
         # WindowCtrl(ClassWindow, WindowName, 1)  中间有弹窗还原将会有问题
         # 不使用还原，结束弹出通知(通知期间无法操作)

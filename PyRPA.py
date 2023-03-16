@@ -190,6 +190,18 @@ def Analysis(PicName, location):
             # mylog("恢复上次剪切板内容")
             pyperclip.copy(strtemp)
             # pyautogui.typewrite(str(NowRowValue[local]), interval=0.1)
+        elif NowRowKey[local] == '购买':
+            price = float(NowRowValue[local])
+            is_available = is_available_for_purchase(price)
+            if is_available:
+                if offseted is True or moved is True:
+                    offseted = moved = False
+                    pyautogui.leftClick()
+                else:
+                    ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
+                    pyautogui.leftClick()
+            else:
+                print('价格超过了最低购买价')
         elif NowRowKey[local] == '按键':
             pyautogui.press(str(NowRowValue[local]))
         elif NowRowKey[local] == '滚动':
@@ -445,6 +457,7 @@ def is_available_for_purchase(lowest_price):
     actual_price = find_number.get_price()
     print(actual_price)
     print(lowest_price)
+    print(actual_price < lowest_price)
     return actual_price < lowest_price
 
 
@@ -466,11 +479,11 @@ def workspace(sheet):
             # 调整好游戏窗口
             set_window()
 
-            price = sheet.row(CurrentROW)[7].value
-            if price is not None:  # 因为价格判断和点击本身没任何关系
-                is_available = is_available_for_purchase(price)
-                print('是否可购买', is_available)
-                return
+            # price = sheet.row(CurrentROW)[7].value
+            # if price is not None:  # 因为价格判断和点击本身没任何关系
+            #     is_available = is_available_for_purchase(price)
+            #     print('是否可购买', is_available)
+            #     return
 
             SourceStr = sheet.row(CurrentROW)[6].value
             mylog('EXCEL Str: ', SourceStr)

@@ -20,6 +20,7 @@ SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0X0002
 SWP_NOZORDER = 0x0004
 
+
 class RECT(Structure):
     _fields_ = [
         ('left', c_long),
@@ -39,6 +40,7 @@ class POINT(Structure):
 def errcheck(result, func, args):
     if not result:
         raise WinError(get_last_error())
+
 
 class WindowControl(object):
     def __init__(self):
@@ -67,19 +69,19 @@ class WindowControl(object):
         """
         if self.win_hd is None:
             return None
-        rect=RECT()
-        GetWindowRect(self.win_hd,byref(rect))
+        rect = RECT()
+        GetWindowRect(self.win_hd, byref(rect))
         return rect
 
-    def toScreenPos(self, x,y):
+    def toScreenPos(self, x, y):
         """
         函数功能：将窗体内部坐标转换为相对于显示屏的绝对坐标
         """
-        #未指定窗口，则结束函数
+        # 未指定窗口，则结束函数
         if self.win_hd is None:
             return None
-        rect=self.getWinRect()
-        #指定的坐标不在窗体内，则结束函数
+        rect = self.getWinRect()
+        # 指定的坐标不在窗体内，则结束函数
         if x < 0 or y < 0 or x > rect.right or y > rect.bottom:
             return None
         pos = POINT()
@@ -98,7 +100,7 @@ class WindowControl(object):
         response = SetWindowPos(self.win_hd, 0, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER)
         print('resize_client response', response)
 
-    def toWindowPos(self,x,y):
+    def toWindowPos(self, x, y):
         """
         函数功能：将绝对坐标转换成相对于窗体内部坐标
         """
@@ -130,9 +132,9 @@ class WindowControl(object):
         """
         if self.win_hd is None:
             return None
-        buffer = create_string_buffer(255,'\0')
-        GetWindowText(self.win_hd,buffer,255)
-        value=buffer.value.decode('gbk')
+        buffer = create_string_buffer(255, '\0')
+        GetWindowText(self.win_hd, buffer, 255)
+        value = buffer.value.decode('gbk')
         return value
 
     def move(self, x, y):
@@ -144,10 +146,10 @@ class WindowControl(object):
         rect = self.getWinRect()
         print('游戏窗体位置和大小', rect)
         MoveWindow.errcheck = errcheck
-        response = MoveWindow(self.win_hd,x,y,rect.right-rect.left,rect.bottom-rect.top,True)
+        response = MoveWindow(self.win_hd, x, y, rect.right - rect.left, rect.bottom - rect.top, True)
         print('MoveTo response', response)
 
-    def WinCapture(self,path,x,y,w,h):
+    def WinCapture(self, path, x, y, w, h):
         """
         函数功能：抓取窗体截图，并保存到文件
         参    数：path 保存路径
@@ -163,11 +165,11 @@ class WindowControl(object):
             w = rect.right - rect.left
         if h == 0:
             h = rect.bottom - rect.top
-        if x < 0 or y < 0 or (x+w) > rect.right or (y+h) > rect.bottom:
+        if x < 0 or y < 0 or (x + w) > rect.right or (y + h) > rect.bottom:
             return None
-        self.Capture(self.win_hd,path,x,y,w,h,0)
+        self.Capture(self.win_hd, path, x, y, w, h, 0)
 
-    def WinCapture_Mem(self,x,y,w,h):
+    def WinCapture_Mem(self, x, y, w, h):
         """
         函数功能：抓取窗体截图，并返回图像内存数据
         参    数：
@@ -184,9 +186,9 @@ class WindowControl(object):
             w = rect.right - rect.left
         if h == 0:
             h = rect.bottom - rect.top
-        if x < 0 or y < 0 or (x+w) > rect.right or (y+h) > rect.bottom:
+        if x < 0 or y < 0 or (x + w) > rect.right or (y + h) > rect.bottom:
             return None
-        return self.Capture(self.win_hd,'',x,y,w,h,1)
+        return self.Capture(self.win_hd, '', x, y, w, h, 1)
 
     def Capture(self, hd, path, x, y, w, h, mode):
         """
@@ -221,16 +223,15 @@ class WindowControl(object):
         # 释放内存
         srcdc.DeleteDC()
         saveDC.DeleteDC()
-        win32gui.ReleaseDC(self.win_hd,hwndDC)
+        win32gui.ReleaseDC(self.win_hd, hwndDC)
         win32gui.DeleteObject(saveBitMap.GetHandle())
 
-
-    def EnumWindowsProc(self,hwnd, lParam):
-        buffer = create_string_buffer(255,'\0')
-        GetWindowText(hwnd,buffer,255)
-        value=buffer.value.decode('gbk')
+    def EnumWindowsProc(self, hwnd, lParam):
+        buffer = create_string_buffer(255, '\0')
+        GetWindowText(hwnd, buffer, 255)
+        value = buffer.value.decode('gbk')
         if value == self.win_title:
             self.win_hd = hwnd
             print(self.win_hd)
-            return  False
+            return False
         return True

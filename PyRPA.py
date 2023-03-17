@@ -427,7 +427,7 @@ def DataCheck(sheet):
     return True
 
 
-def set_window():
+def set_game_window():
     """
     将游戏窗口放到（0，0）并将分辨率改为 1550*800
     :return:
@@ -436,6 +436,17 @@ def set_window():
     window_control.bind_by_name('MIRMG(1)')
     window_control.move(0, 0)
     window_control.resize(1550, 800)
+
+
+def set_simulator_window():
+    """
+    将模拟器窗口放到（1550,0）并将分辨率改为320*720
+    :return:
+    """
+    window_control = WindowControl()
+    window_control.bind_by_name('雷电模拟器')
+    window_control.move(1550, 0)
+    window_control.resize(475, 800)
 
 
 def is_available_for_purchase(lowest_price):
@@ -477,7 +488,10 @@ def workspace(sheet):
             mylog('EXCEL ROW ', CurrentROW + 1)
 
             # 调整好游戏窗口
-            set_window()
+            set_game_window()
+
+            # 调整好模拟器窗口
+            set_simulator_window()
 
             # price = sheet.row(CurrentROW)[7].value
             # if price is not None:  # 因为价格判断和点击本身没任何关系

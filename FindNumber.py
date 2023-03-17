@@ -13,7 +13,7 @@ class FindNumber(object):
         # 加载数字模板
         temps = []
         for i in range(10):
-            temps.append(cv2.imread(f'Source/temple_numbers/{i}.png', cv2.IMREAD_GRAYSCALE))
+            temps.append(cv2.imread(f'temple_numbers/{i}.png', cv2.IMREAD_GRAYSCALE))
 
         # 按下任意键退出识别
         # while cv2.waitKey(delay=100) == -1:
@@ -28,8 +28,9 @@ class FindNumber(object):
         result = []
         for cnt in contours:
             [x, y, w, h] = cv2.boundingRect(cnt)
+            print(x,y,w,h)
             # 按照高度筛选
-            if h == 11 and w == 7:
+            if h == 11 and 8 >= w >= 7:
                 result.append([x, y, w, h])
 
         result.sort(key=lambda x: x[0])

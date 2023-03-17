@@ -195,6 +195,8 @@ def Analysis(PicName, location):
             pyperclip.copy(str(NowRowValue[local]))
             time.sleep(0.2)
         elif NowRowKey[local] == '粘贴':
+            time.sleep(0.5)
+            mylog('剪切板内容', pyperclip.paste())
             pyautogui.hotkey('ctrl', 'v')
             time.sleep(0.2)
         elif NowRowKey[local] == '键入':
@@ -207,9 +209,11 @@ def Analysis(PicName, location):
             if is_available:
                 if offseted is True or moved is True:
                     offseted = moved = False
+                    mylog('左键点击')
                     pyautogui.leftClick()
                 else:
                     ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
+                    mylog('左键点击')
                     pyautogui.leftClick()
             else:
                 print('价格超过了最低购买价')

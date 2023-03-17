@@ -1,7 +1,7 @@
 import cv2
 
 # 读取图片并转为灰度图
-gray = cv2.imread('./Source/temple_numbers/number_completed.png', cv2.IMREAD_GRAYSCALE)
+gray = cv2.imread('./temple_numbers/number_completed.png', cv2.IMREAD_GRAYSCALE)
 # 二值化，cv2.THRESH_OTSU指定由函数判断阈值
 ret, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY|cv2.THRESH_OTSU)
 # 寻找轮廓

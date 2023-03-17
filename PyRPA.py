@@ -156,12 +156,12 @@ def Analysis(PicName, location):
             if offseted is True or moved is True:
                 offseted = moved = False
                 for i in range(0, int(NowRowValue[local])):  # 配合相对偏移点击
-                    mylog("右键点击")
+                    mylog("左键点击")
                     pyautogui.leftClick()
             else:
                 ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
                 for i in range(0, int(NowRowValue[local])):
-                    mylog("右键点击")
+                    mylog("左键点击")
                     pyautogui.leftClick()
 
         elif NowRowKey[local] == '右键':
@@ -185,11 +185,22 @@ def Analysis(PicName, location):
             # mylog("上次剪切板内容：", strtemp)
             pyperclip.copy(str(NowRowValue[local]))
             time.sleep(0.2)
+            mylog('剪切板内容', pyperclip.paste())
             pyautogui.hotkey('ctrl', 'v')
             time.sleep(0.2)
             # mylog("恢复上次剪切板内容")
             pyperclip.copy(strtemp)
             # pyautogui.typewrite(str(NowRowValue[local]), interval=0.1)
+        elif NowRowKey[local] == '复制':
+            pyperclip.copy(str(NowRowValue[local]))
+            time.sleep(0.2)
+        elif NowRowKey[local] == '粘贴':
+            pyautogui.hotkey('ctrl', 'v')
+            time.sleep(0.2)
+        elif NowRowKey[local] == '键入':
+            time.sleep(0.5)
+            pyautogui.typewrite(str(NowRowValue[local]), interval=0.1)
+            pyautogui.press("enter")
         elif NowRowKey[local] == '购买':
             price = float(NowRowValue[local])
             is_available = is_available_for_purchase(price)
@@ -492,6 +503,8 @@ def workspace(sheet):
 
             # 调整好模拟器窗口
             set_simulator_window()
+
+            time.sleep(0.5)
 
             # price = sheet.row(CurrentROW)[7].value
             # if price is not None:  # 因为价格判断和点击本身没任何关系

@@ -100,6 +100,8 @@ moved = False  # 之前是否使用移动
 JumpLine = -1  # 行跳转标识  可实现某些行间的循环 跳转后继续顺序执行
 theme = 0  # 主题
 
+# 记录购买的商品数量
+goods_amount = 0
 
 def resource_path(relative_path):
     if getattr(sys, 'frozen', False):  # 是否Bundle Resource
@@ -204,19 +206,25 @@ def Analysis(PicName, location):
             pyautogui.typewrite(str(NowRowValue[local]), interval=0.1)
             pyautogui.press("enter")
         elif NowRowKey[local] == '购买':
-            price = float(NowRowValue[local])
-            is_available = is_available_for_purchase(price)
-            if is_available:
-                if offseted is True or moved is True:
-                    offseted = moved = False
-                    mylog('左键点击')
-                    pyautogui.leftClick()
-                else:
-                    ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
-                    mylog('左键点击')
-                    pyautogui.leftClick()
+            split = re.split('/', NowRowValue[local])
+            price = float(split[0])
+            max_amount = float(split[1])
+            is_price_available = is_price_available_for_purchase(price)
+            is_amount_available = is_amount_available_for_purchase(max_amount, goods_amount)
+            if not is_amount_available:
+                pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
+                return
+            if not is_price_available:
+                print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
+                return
+            if offseted is True or moved is True:
+                offseted = moved = False
+                mylog('左键点击')
+                pyautogui.leftClick()
             else:
-                print('价格超过了最低购买价')
+                ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
+                mylog('左键点击')
+                pyautogui.leftClick()
         elif NowRowKey[local] == '按键':
             pyautogui.press(str(NowRowValue[local]))
         elif NowRowKey[local] == '滚动':
@@ -464,28 +472,24 @@ def set_simulator_window():
     window_control.resize(475, 800)
 
 
-def is_available_for_purchase(lowest_price):
-    if os.path.exists('Screenshot') is not True:
-        os.mkdir('Screenshot')
-    screen_shot_img_path = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S")}.png'
-    pyautogui.screenshot().save(screen_shot_img_path)
-
-    import cv2
-    img = cv2.imread(screen_shot_img_path)
-    # 需要游戏窗口大小为1550*800
-    cropped = img[350:450, 900:1100]  # 裁剪坐标为[y0:y1, x0:x1]
-    # cropped = img[385:445, 980:1060]  # 裁剪坐标为[y0:y1, x0:x1]
-    # cropped = img[350:380, 1205:1215]  # 裁剪坐标为[y0:y1, x0:x1]
-
-    cv2.imwrite(screen_shot_img_path, cropped)
+def is_price_available_for_purchase(lowest_price):
     find_number = FindNumber()
-    find_number.get_number_list(screen_shot_img_path)
-    actual_price = find_number.get_price()
+    actual_price = find_number.get_by_coordinate(350, 450, 900, 1100)
+
     print(actual_price)
     print(lowest_price)
     print(actual_price < lowest_price)
     return actual_price < lowest_price
 
+
+def is_amount_available_for_purchase(max_amount, record_amount):
+    find_number = FindNumber()
+    single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
+    record_amount += single_item_amount
+
+    print(single_item_amount)
+    print(record_amount)
+    return record_amount < max_amount
 
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet

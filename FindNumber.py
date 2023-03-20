@@ -2,13 +2,35 @@ from ctypes import windll, byref, c_ubyte
 from ctypes.wintypes import RECT, HWND
 import numpy as np
 import time
+import os
+import pyautogui
 
 
 class FindNumber(object):
-    def __init__(self):
-        self.numbers = []
+    def get_by_coordinate(self, x_start, x_end, y_start, y_end):
+        """
+        需要游戏窗口大小为1550*800
+        :param x_start:
+        :param x_end:
+        :param y_start:
+        :param y_end:
+        :return:
+        """
+        if os.path.exists('Screenshot') is not True:
+            os.mkdir('Screenshot')
+        screen_shot_img_path = 'Screenshot/Shot_' + f'{time.strftime("%m%d%H%M%S")}.png'
+        pyautogui.screenshot().save(screen_shot_img_path)
+        import cv2
 
-    def get_number_list(self, img_path):
+        img = cv2.imread(screen_shot_img_path)
+        cropped = img[y_start:y_end, x_start:x_end]  # 裁剪坐标为[y0:y1, x0:x1]
+
+        cv2.imwrite(screen_shot_img_path, cropped)
+        numbers = self.make_number_list(screen_shot_img_path)
+        return self.make_number(numbers)
+
+    @staticmethod
+    def make_number_list(img_path):
         import cv2
         # 加载数字模板
         temps = []
@@ -28,7 +50,6 @@ class FindNumber(object):
         result = []
         for cnt in contours:
             [x, y, w, h] = cv2.boundingRect(cnt)
-            print(x,y,w,h)
             # 按照高度筛选
             if h == 11 and 8 >= w >= 7:
                 result.append([x, y, w, h])
@@ -50,27 +71,28 @@ class FindNumber(object):
             # cv2.imshow('Digits OCR Test', im)
             numbers.append(res[-1][0])
         print('识别到的数字：', numbers)
-        self.numbers = numbers
+        return numbers
 
-    def get_price(self):
-        number_count = len(self.numbers)
+    @staticmethod
+    def make_number(numbers):
+        number_count = len(numbers)
         number = 0
         if number_count <= 0:
             print('没有找到数字！')
             return number
 
-        first_number = self.numbers[0]
+        first_number = numbers[0]
         if first_number == 0:
             for i in range(number_count):
-                current_number = self.numbers[i]
+                current_number = numbers[i]
                 if current_number != 0:
-                    number += self.numbers[i] / 10 ** i
+                    number += numbers[i] / 10 ** i
 
             number = round(number, number_count - 1)
         else:
             for i in range(number_count):
-                current_number = self.numbers[i]
+                current_number = numbers[i]
                 if current_number != 0:
-                    number += self.numbers[i] * 10 ** (number_count - (i + 1))
+                    number += numbers[i] * 10 ** (number_count - (i + 1))
         print('每个价格：', number)
         return number

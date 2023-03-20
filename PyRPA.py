@@ -101,7 +101,8 @@ JumpLine = -1  # 行跳转标识  可实现某些行间的循环 跳转后继续
 theme = 0  # 主题
 
 # 记录购买的商品数量
-goods_amount = 0
+total_goods_amount = 0
+check_amount = 0
 
 def resource_path(relative_path):
     if getattr(sys, 'frozen', False):  # 是否Bundle Resource
@@ -126,7 +127,7 @@ def threadSysCMD(InputCmd):
 #  @ 备注：PicName用于防止传进来的位置为空的情况进行重找(小概率)
 #         重新找3次 moveTo读不到位置会崩溃
 def Analysis(PicName, location):
-    global offseted, moved, JumpLine
+    global offseted, moved, JumpLine, check_amount
 
     def ClickFilter():
         if PicName != 'None':
@@ -208,23 +209,26 @@ def Analysis(PicName, location):
         elif NowRowKey[local] == '购买':
             split = re.split('/', NowRowValue[local])
             price = float(split[0])
-            max_amount = float(split[1])
+            max_amount = int(split[1])
             is_price_available = is_price_available_for_purchase(price)
-            is_amount_available = is_amount_available_for_purchase(max_amount, goods_amount)
+            is_amount_available = is_amount_available_for_purchase(max_amount)
             if not is_amount_available:
                 pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
-                return
+                break
             if not is_price_available:
                 print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
-                return
-            if offseted is True or moved is True:
-                offseted = moved = False
-                mylog('左键点击')
-                pyautogui.leftClick()
+                break
+        elif NowRowKey[local] == '尝试购买上限':
+            max_check_amount = int(NowRowValue[local])
+            check_amount = check_amount + 1
+            print('当前搜索尝试购买次数', check_amount, '当前搜索尝试购买次数上限', max_check_amount)
+            if check_amount <= max_check_amount:
+                # 小于等于上限说明检查通过，继续后续操作
+                break
             else:
-                ClickFilter()  # 偏移和移动都没使用过 在点击前判断图片坐标是否有效 否则盲点无意义
-                mylog('左键点击')
-                pyautogui.leftClick()
+                check_amount = 0
+                # 在后续添加跳转操作即可
+                print('检查当前搜索购买次数，超过设置重新搜索')
         elif NowRowKey[local] == '按键':
             pyautogui.press(str(NowRowValue[local]))
         elif NowRowKey[local] == '滚动':
@@ -476,20 +480,18 @@ def is_price_available_for_purchase(lowest_price):
     find_number = FindNumber()
     actual_price = find_number.get_by_coordinate(350, 450, 900, 1100)
 
-    print(actual_price)
-    print(lowest_price)
-    print(actual_price < lowest_price)
+    print('实际价格', actual_price, '最低价格', lowest_price)
     return actual_price < lowest_price
 
 
-def is_amount_available_for_purchase(max_amount, record_amount):
+def is_amount_available_for_purchase(max_amount):
+    global total_goods_amount
     find_number = FindNumber()
     single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
-    record_amount += single_item_amount
+    total_goods_amount += single_item_amount
 
-    print(single_item_amount)
-    print(record_amount)
-    return record_amount < max_amount
+    print('当前商品数量', single_item_amount, '总计购买商品', total_goods_amount, '商品限额', max_amount)
+    return total_goods_amount < max_amount
 
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet

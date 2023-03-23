@@ -28,6 +28,7 @@ import win32console
 import win32ui
 from playsound import playsound
 
+import FindNumberOrWord
 # 识别数字相关依赖
 from Window import WindowControl
 from FindNumber import FindNumber
@@ -103,6 +104,11 @@ theme = 0  # 主题
 # 记录购买的商品数量
 total_goods_amount = 0
 check_amount = 0
+record_server_number = 0
+record_server_name = ''
+record_amount = 0
+record_price = 0
+
 
 def resource_path(relative_path):
     if getattr(sys, 'frozen', False):  # 是否Bundle Resource
@@ -136,6 +142,7 @@ def Analysis(PicName, location):
     mylog('-----> Analysis NowRowKey:', NowRowKey)
     mylog('-----> Analysis NowRowValue:', NowRowValue)
     local = 0
+    ClickFilter()
     # if running == 1:
     # if Filter():
     #     if location is not None and running == 1:
@@ -206,29 +213,6 @@ def Analysis(PicName, location):
             time.sleep(0.5)
             pyautogui.typewrite(str(NowRowValue[local]), interval=0.1)
             pyautogui.press("enter")
-        elif NowRowKey[local] == '购买':
-            split = re.split('/', NowRowValue[local])
-            price = float(split[0])
-            max_amount = int(split[1])
-            is_price_available = is_price_available_for_purchase(price)
-            is_amount_available = is_amount_available_for_purchase(max_amount)
-            if not is_amount_available:
-                pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
-                break
-            if not is_price_available:
-                print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
-                break
-        elif NowRowKey[local] == '尝试购买上限':
-            max_check_amount = int(NowRowValue[local])
-            check_amount = check_amount + 1
-            print('当前搜索尝试购买次数', check_amount, '当前搜索尝试购买次数上限', max_check_amount)
-            if check_amount <= max_check_amount:
-                # 小于等于上限说明检查通过，继续后续操作
-                break
-            else:
-                check_amount = 0
-                # 在后续添加跳转操作即可
-                print('检查当前搜索购买次数，超过设置重新搜索')
         elif NowRowKey[local] == '按键':
             pyautogui.press(str(NowRowValue[local]))
         elif NowRowKey[local] == '滚动':
@@ -304,6 +288,36 @@ def Analysis(PicName, location):
             break
         elif NowRowKey[local] == '音频' or NowRowKey[local] == '音乐' or NowRowKey[local] == '播放':
             playsound(".\\Source\\" + NowRowValue[local])
+        elif NowRowKey[local] == '购买':
+            split = re.split('/', NowRowValue[local])
+            price = float(split[0])
+            max_amount = int(split[1])
+            is_price_available = is_price_available_for_purchase(price)
+            is_amount_available = is_amount_available_for_purchase(max_amount, is_price_available)
+            if not is_amount_available:
+                pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
+                break
+            if not is_price_available:
+                print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
+                break
+        elif NowRowKey[local] == '尝试购买上限':
+            max_check_amount = int(NowRowValue[local])
+            check_amount = check_amount + 1
+            print('当前搜索尝试购买次数', check_amount, '当前搜索尝试购买次数上限', max_check_amount)
+            if check_amount <= max_check_amount:
+                # 小于等于上限说明检查通过，继续后续操作
+                break
+            else:
+                check_amount = 0
+                # 在后续添加跳转操作即可
+                print('检查当前搜索购买次数，超过设置重新搜索')
+        elif NowRowKey[local] == '是否为同一商品':
+            is_same = is_the_same_goods()
+            if is_same:
+                print('同一商品')
+                break
+            else:
+                print('不同商品，可继续购买')
         else:
             mylog('CMD:', NowRowKey[local], '!! 未知指令', NowRowKey[local])
             pyautogui.alert(text='CMD: ' + NowRowKey[local] + '!! 未知指令', title=MSGWindowName)
@@ -319,6 +333,7 @@ def FindPicAndClick(PicName, timeout, outmethod, interval):
     if PicName != '' and os.path.exists(ImgPath) is True and running == 1:
         mylog(ImgPath, '图片有效')
         location = pyautogui.locateCenterOnScreen(ImgPath, confidence=0.9)
+        print('location！！！！！！！！！！！！！！！！！', location)
         ViewLog = True
         if location is not None:
             mylog(ImgPath, 'location is not None, Quick run')
@@ -477,21 +492,42 @@ def set_simulator_window():
 
 
 def is_price_available_for_purchase(lowest_price):
+    actual_price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
+    print(actual_price)
+    print('实际价格', float(actual_price), '最低价格', lowest_price)
+    return float(actual_price) < lowest_price
+
+
+def is_the_same_goods():
+    global record_server_number, record_server_name, record_amount, record_price
+    server_name = FindNumberOrWord.get_by_coordinate(750, 900, 350, 450)
+    price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     find_number = FindNumber()
-    actual_price = find_number.get_by_coordinate(350, 450, 900, 1100)
+    item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
 
-    print('实际价格', actual_price, '最低价格', lowest_price)
-    return actual_price < lowest_price
+    print('实际服务器名', server_name, '记录服务器名', record_server_name)
+    print('实际价格', price, '记录价格', record_price)
+    print('实际数量', item_amount, '记录数量', record_amount)
+    if server_name == record_server_name and price == record_price and item_amount == record_amount:
+        return True
+    else:
+        record_server_name = server_name
+        record_price = price
+        record_amount = item_amount
+        return False
 
 
-def is_amount_available_for_purchase(max_amount):
+def is_amount_available_for_purchase(max_amount, is_price_available):
     global total_goods_amount
-    find_number = FindNumber()
-    single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
-    total_goods_amount += single_item_amount
+    if is_price_available:
+        find_number = FindNumber()
+        single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
+        total_goods_amount += single_item_amount
+        print('当前商品数量', single_item_amount)
 
-    print('当前商品数量', single_item_amount, '总计购买商品', total_goods_amount, '商品限额', max_amount)
+    print('总计购买商品', total_goods_amount, '商品限额', max_amount)
     return total_goods_amount < max_amount
+
 
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet

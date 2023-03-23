@@ -94,5 +94,5 @@ class FindNumber(object):
                 current_number = numbers[i]
                 if current_number != 0:
                     number += numbers[i] * 10 ** (number_count - (i + 1))
-        print('每个价格：', number)
+        print('每个数字：', number)
         return number

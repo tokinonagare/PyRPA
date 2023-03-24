@@ -315,9 +315,9 @@ def Analysis(PicName, location):
             is_same = is_the_same_goods()
             if is_same:
                 print('同一商品')
-                break
             else:
                 print('不同商品，可继续购买')
+                break
         else:
             mylog('CMD:', NowRowKey[local], '!! 未知指令', NowRowKey[local])
             pyautogui.alert(text='CMD: ' + NowRowKey[local] + '!! 未知指令', title=MSGWindowName)
@@ -475,7 +475,7 @@ def set_game_window():
     :return:
     """
     window_control = WindowControl()
-    window_control.bind_by_name('MIRMG(1)')
+    window_control.bind_by_name('MIRMG(2)')
     window_control.move(0, 0)
     window_control.resize(1550, 800)
 

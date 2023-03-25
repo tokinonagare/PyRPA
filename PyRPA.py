@@ -102,7 +102,6 @@ JumpLine = -1  # 行跳转标识  可实现某些行间的循环 跳转后继续
 theme = 0  # 主题
 
 # 用于记录的几个全球变量
-total_goods_amount = 0
 single_amount_of_money = 0
 check_amount = 0
 record_server_name = ''
@@ -294,12 +293,19 @@ def Analysis(PicName, location):
             price = float(split[0])
             max_amount_of_money_in_single_time = float(split[1])
             max_amount_of_single_time = int(split[2])
-            max_amount = int(split[3])
+            max_amount = int(config.get("SAVE", ListCfg[4]))
 
-            is_amount_available = is_amount_available_for_purchase(max_amount, max_amount_of_single_time)
+            single_goods_amount = get_single_goods_amount()
+            total_goods_amount = get_total_goods_amount(single_goods_amount)
+
+            is_amount_available = is_amount_available_for_purchase(
+                single_goods_amount, total_goods_amount, max_amount_of_single_time, max_amount)
             if not is_amount_available:
                 pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
                 break
+            else:
+                save_total_goods_amount(total_goods_amount)
+
             is_amount_of_money_available = is_amount_of_money_available_for_purchase(max_amount_of_money_in_single_time)
             if is_amount_of_money_available:
                 print('单次购买金额超过了限额，跳过并寻找其他符合的商品')
@@ -532,15 +538,25 @@ def is_the_same_goods():
         return False
 
 
-def is_amount_available_for_purchase(max_amount, single_max_amount):
-    global total_goods_amount
+def get_single_goods_amount():
     find_number = FindNumber()
-    single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
-    total_goods_amount += single_item_amount
-    print('当前商品数量', single_item_amount)
+    return find_number.get_by_coordinate(280, 325, 400, 445)
 
-    print('总计购买商品', total_goods_amount, '商品限额', max_amount)
-    return total_goods_amount < max_amount and single_item_amount < single_max_amount
+
+def get_total_goods_amount(single_goods_amount):
+    total_goods_amount = int(config.get("SAVE", ListCfg[3]))
+    total_goods_amount += single_goods_amount
+    return total_goods_amount
+
+
+def save_total_goods_amount(total_goods_amount):
+    config.set("SAVE", ListCfg[3], total_goods_amount)
+
+
+def is_amount_available_for_purchase(single_goods_amount, total_goods_amount, single_max_amount, max_amount):
+    print('商品数量', total_goods_amount, '单次最大购买', max_amount)
+    print('总计购买商品', total_goods_amount, '总计商品限额', max_amount)
+    return total_goods_amount < max_amount and single_goods_amount < single_max_amount
 
 
 def is_amount_of_money_available_for_purchase(max_amount_of_money):
@@ -548,7 +564,7 @@ def is_amount_of_money_available_for_purchase(max_amount_of_money):
     single_amount_of_money = FindNumberOrWord.get_by_coordinate(1100, 1300, 350, 450)
     print('当前金额', single_amount_of_money)
 
-    print('当前金额', total_goods_amount, '最大金额限制', max_amount_of_money)
+    print('当前金额', single_amount_of_money, '最大金额限制', max_amount_of_money)
     return single_amount_of_money < max_amount_of_money
 
 
@@ -733,7 +749,7 @@ ETStop = None
 LpCounter = 0
 StartKey = ''
 StopKey = ''
-ListCfg = ['loopcounter', 'starthotkey', 'stophotkey']  # 下拉栏是独立的
+ListCfg = ['loopcounter', 'starthotkey', 'stophotkey', 'goods_amount', 'max_goods_amount']  # 下拉栏是独立的
 XlsSource = None
 WorkPath = ''
 
@@ -768,10 +784,10 @@ def ThreadShowUIAndManageEvent():
     Top.tk.call("source", "sun-valley.tcl")  # 加载主题
     # Top.tk.call("set_theme", "light")
     # Top.tk.call("set_theme", "dark")
-    Top.geometry("350x295+10+16")
+    Top.geometry("350x395+10+16")
     # Top.resizable(False, False)  # 固定大小
-    Top.minsize(350, 295)  # 最小尺寸
-    Top.maxsize(450, 395)  # 最大尺寸
+    Top.minsize(350, 395)  # 最小尺寸
+    Top.maxsize(450, 495)  # 最大尺寸
     Top.iconbitmap(IconPath)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     # 调用api获得当前的缩放因子
@@ -895,6 +911,12 @@ def ThreadShowUIAndManageEvent():
     Lab = tk.Label(Top, text="停止热键:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=20, y=Label_y_base + 46 * 4)
 
+    Lab = tk.Label(Top, text="已购买数量:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=20, y=Label_y_base + 46 * 5)
+
+    Lab = tk.Label(Top, text="最大购买数量:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=20, y=Label_y_base + 46 * 6)
+
     Entry_y_base = 105
     # ETLoop = Entry(Top, bd=1)
     # ETLoop.place(x=145, y=Entry_y_base, width=50)
@@ -914,17 +936,29 @@ def ThreadShowUIAndManageEvent():
     # switch = ttk.Checkbutton(Top, text="Switch", style="Switch.TCheckbutton")
     # switch.place(x=140, y=Entry_y_base + 45 * 2)
 
+    et_buy_amount = ttk.Entry(Top)
+    et_buy_amount.place(x=140, y=Entry_y_base + 45 * 3, width=175, height=30)
+
+    et_max_buy_amount = ttk.Entry(Top)
+    et_max_buy_amount.place(x=140, y=Entry_y_base + 45 * 4, width=175, height=30)
+
     # 先拿出之前的配置，启动先前的热键事件检测
     LpCounter = config.get("SAVE", ListCfg[0])
     StartKey = config.get("SAVE", ListCfg[1])
     StopKey = config.get("SAVE", ListCfg[2])
+    et_buy_amount_value = config.get("SAVE", ListCfg[3])
+    et_max_buy_amount_value = config.get("SAVE", ListCfg[4])
     mylog('恢复上次设置的循环次数，', LpCounter)
     ETLoop.insert("insert", LpCounter)
     mylog('恢复上次设置的开始热键，', StartKey)
     ETStart.insert("insert", StartKey)
     mylog('恢复上次设置的停止热键，', StopKey)
-    mylog('-等待用户操作-')
     ETStop.insert("insert", StopKey)
+    mylog('-恢复记录的购买数量-', et_buy_amount_value)
+    et_buy_amount.insert("insert", et_buy_amount_value)
+    mylog('-恢复记录的购买上限-', et_max_buy_amount_value)
+    et_max_buy_amount.insert("insert", et_max_buy_amount_value)
+    mylog('-等待用户操作-')
     keyboard.add_hotkey(StartKey, begin_working)
     keyboard.add_hotkey(StopKey, finished_working)
 
@@ -933,7 +967,7 @@ def ThreadShowUIAndManageEvent():
         global LpCounter
         global StartKey
         global StopKey
-        ListCfgValue = [ETLoop.get(), ETStart.get(), ETStop.get()]
+        ListCfgValue = [ETLoop.get(), ETStart.get(), ETStop.get(), et_buy_amount.get(), et_max_buy_amount.get()]
         mylog('配置更新, ListCfg:', ListCfgValue)
 
         # 实时更新使用端
@@ -943,7 +977,7 @@ def ThreadShowUIAndManageEvent():
 
         keyboard.add_hotkey(StartKey, begin_working)
         keyboard.add_hotkey(StopKey, finished_working)
-        for j in range(0, 3):
+        for j in range(len(ListCfg)):
             config.set("SAVE", ListCfg[j], ListCfgValue[j])
         for List in ListCfg:
             for choose in config.keys():
@@ -963,16 +997,17 @@ def ThreadShowUIAndManageEvent():
     # s = ttk.Style()
     # s.configure('W.TButton', font=('Helvetica', 14))
     # time.sleep(0.6)
-    # my_style.configure('W.TButton', background='#E0E0E0', font=('方正姚体', 14))
+    # my_style.configure('W.TButton', backgrou`d='#E0E0E0', font=('方正姚体', 14))
 
     #  使用tk样式
     # butt = tk.Button(Top, text="保存并刷新", width=15, height=1, font=("方正姚体", 11), fg="#E8E8E8", relief=RIDGE, command=UpdataCfg)
     # butt.place(x=25, y=250, width=120)
+
     butt = ttk.Button(Top, text="保存并刷新", style='W.TButton', command=UpdataCfg)
-    butt.place(x=20, y=245, width=145)
+    butt.place(x=20, y=Label_y_base + 46 * 7, width=145)
 
     butt2 = ttk.Button(Top, text="点击开始", style='W.TButton', command=Bbegin)
-    butt2.place(x=170, y=245, width=145)
+    butt2.place(x=170, y=Label_y_base + 46 * 7, width=145)
 
     Top.protocol("WM_DELETE_WINDOW", KillSelf)
     Top.mainloop()

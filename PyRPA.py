@@ -101,10 +101,10 @@ moved = False  # 之前是否使用移动
 JumpLine = -1  # 行跳转标识  可实现某些行间的循环 跳转后继续顺序执行
 theme = 0  # 主题
 
-# 记录购买的商品数量
+# 用于记录的几个全球变量
 total_goods_amount = 0
+single_amount_of_money = 0
 check_amount = 0
-record_server_number = 0
 record_server_name = ''
 record_amount = 0
 record_price = 0
@@ -291,12 +291,19 @@ def Analysis(PicName, location):
         elif NowRowKey[local] == '购买':
             split = re.split('/', NowRowValue[local])
             price = float(split[0])
-            max_amount = int(split[1])
-            is_price_available = is_price_available_for_purchase(price)
-            is_amount_available = is_amount_available_for_purchase(max_amount, is_price_available)
+            max_amount_of_money_in_single_time = float(split[1])
+            max_amount_of_single_time = int(split[2])
+            max_amount = int(split[3])
+
+            is_amount_available = is_amount_available_for_purchase(max_amount, max_amount_of_single_time)
             if not is_amount_available:
                 pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
                 break
+            is_amount_of_money_available = is_amount_of_money_available_for_purchase(max_amount_of_money_in_single_time)
+            if is_amount_of_money_available:
+                print('单次购买金额超过了限额，跳过并寻找其他符合的商品')
+                break
+            is_price_available = is_price_available_for_purchase(price)
             if not is_price_available:
                 print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
                 break
@@ -318,6 +325,8 @@ def Analysis(PicName, location):
             else:
                 print('不同商品，可继续购买')
                 break
+        elif NowRowKey[local] == '添加记录':
+            record_purchase()
         else:
             mylog('CMD:', NowRowKey[local], '!! 未知指令', NowRowKey[local])
             pyautogui.alert(text='CMD: ' + NowRowKey[local] + '!! 未知指令', title=MSGWindowName)
@@ -333,7 +342,6 @@ def FindPicAndClick(PicName, timeout, outmethod, interval):
     if PicName != '' and os.path.exists(ImgPath) is True and running == 1:
         mylog(ImgPath, '图片有效')
         location = pyautogui.locateCenterOnScreen(ImgPath, confidence=0.9)
-        print('location！！！！！！！！！！！！！！！！！', location)
         ViewLog = True
         if location is not None:
             mylog(ImgPath, 'location is not None, Quick run')
@@ -499,7 +507,7 @@ def is_price_available_for_purchase(lowest_price):
 
 
 def is_the_same_goods():
-    global record_server_number, record_server_name, record_amount, record_price
+    global record_server_name, record_amount, record_price
     server_name = FindNumberOrWord.get_by_coordinate(750, 900, 350, 450)
     price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     find_number = FindNumber()
@@ -517,17 +525,31 @@ def is_the_same_goods():
         return False
 
 
-def is_amount_available_for_purchase(max_amount, is_price_available):
+def is_amount_available_for_purchase(max_amount, single_max_amount):
     global total_goods_amount
-    if is_price_available:
-        find_number = FindNumber()
-        single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
-        total_goods_amount += single_item_amount
-        print('当前商品数量', single_item_amount)
+    find_number = FindNumber()
+    single_item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
+    total_goods_amount += single_item_amount
+    print('当前商品数量', single_item_amount)
 
     print('总计购买商品', total_goods_amount, '商品限额', max_amount)
-    return total_goods_amount < max_amount
+    return total_goods_amount < max_amount and single_item_amount < single_max_amount
 
+
+def is_amount_of_money_available_for_purchase(max_amount_of_money):
+    global single_amount_of_money
+    single_amount_of_money = FindNumberOrWord.get_by_coordinate(1100, 1300, 350, 450)
+    print('当前金额', single_amount_of_money)
+
+    print('当前金额', total_goods_amount, '最大金额限制', max_amount_of_money)
+    return single_amount_of_money < max_amount_of_money
+
+
+def record_purchase():
+    global record_server_name, record_amount, record_price
+    file_name = './' + dt.datetime.now().strftime('%F') + '.txt'
+    with open(file_name, 'a') as f:
+        print(dt.datetime.now().strftime('%F %T:%f'), record_server_name, record_amount, record_price, file=f)
 
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet
@@ -1024,9 +1046,9 @@ if __name__ == '__main__':
     threading.Thread(target=ThreadShowLabelWindow).start()
     threading.Thread(target=ThreadShowUIAndManageEvent).start()
     mylog(' ————————————————————————————————————————————')
-    mylog('|欢迎使用自动化软件！  <程序版本V0.9.3>')
-    mylog('|作者: Up主 "极光创客喵" chundong_cindy@163.com')
-    mylog('|鸣谢: Up主"不高兴就喝水"')
+    mylog('|欢迎使用自动化软件！  <程序版本V0.9.4>')
+    mylog('|作者: tokinonagare "timemahou@gmail.com"')
+    mylog('|鸣谢: Up主"不高兴就喝水"  Up主 "极光创客喵"')
     mylog(' ————————————————————————————————————————————\n')
 
 

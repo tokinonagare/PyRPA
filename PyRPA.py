@@ -108,6 +108,7 @@ check_amount = 0
 record_server_name = ''
 record_amount = 0
 record_price = 0
+try_purchase_time = 1
 
 
 def resource_path(relative_path):
@@ -133,7 +134,7 @@ def threadSysCMD(InputCmd):
 #  @ 备注：PicName用于防止传进来的位置为空的情况进行重找(小概率)
 #         重新找3次 moveTo读不到位置会崩溃
 def Analysis(PicName, location):
-    global offseted, moved, JumpLine, check_amount
+    global offseted, moved, JumpLine, check_amount, try_purchase_time
 
     def ClickFilter():
         if PicName != 'None':
@@ -320,8 +321,14 @@ def Analysis(PicName, location):
                 print('检查当前搜索购买次数，超过设置重新搜索')
         elif NowRowKey[local] == '是否为同一商品':
             is_same = is_the_same_goods()
+            max_try_purchase_time = NowRowValue[local]
             if is_same:
-                print('同一商品')
+                try_purchase_time +=1
+                if try_purchase_time > max_try_purchase_time:
+                    print('同一商品，且超过最大尝试次数')
+                else:
+                    print('同一商品，未超过最大尝试次数，继续购买')
+                    break
             else:
                 print('不同商品，可继续购买')
                 break

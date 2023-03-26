@@ -341,6 +341,10 @@ def Analysis(PicName, location):
             save_total_goods_amount()
         elif NowRowKey[local] == '记录交易详情':
             record_purchase()
+        elif NowRowKey[local] == '复制密码':
+            password = config.get("SAVE", ListCfg[12])
+            pyperclip.copy(password)
+            time.sleep(0.2)
         else:
             mylog('CMD:', NowRowKey[local], '!! 未知指令', NowRowKey[local])
             pyautogui.alert(text='CMD: ' + NowRowKey[local] + '!! 未知指令', title=MSGWindowName)
@@ -765,7 +769,7 @@ StopKey = ''
 ListCfg = [
     'loopcounter', 'starthotkey', 'stophotkey', 'window_name', 'goods_name',
     'highest_price', 'buy_amount', 'max_buy_amount', 'single_purchase_max_money_amount', 'single_purchase_max_amount',
-    'same_goods_try_times', 'single_search_purchase_times'
+    'same_goods_try_times', 'single_search_purchase_times', 'wallet_password'
 ]  # 下拉栏是独立的
 XlsSource = None
 WorkPath = ''
@@ -803,8 +807,8 @@ def ThreadShowUIAndManageEvent():
     # Top.tk.call("set_theme", "dark")
     Top.geometry("350x395+10+16")
     # Top.resizable(False, False)  # 固定大小
-    Top.minsize(690, 375)  # 最小尺寸
-    Top.maxsize(890, 465)  # 最大尺寸
+    Top.minsize(690, 425)  # 最小尺寸
+    Top.maxsize(890, 515)  # 最大尺寸
     Top.iconbitmap(IconPath)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     # 调用api获得当前的缩放因子
@@ -955,6 +959,9 @@ def ThreadShowUIAndManageEvent():
     Lab = tk.Label(Top, text="单次搜索购买次数:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=330, y=Label_y_base + 46 * 7)
 
+    Lab = tk.Label(Top, text="钱包密码:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 8)
+
     Entry_y_base = 105
     # ETLoop = Entry(Top, bd=1)
     # ETLoop.place(x=145, y=Entry_y_base, width=50)
@@ -977,28 +984,31 @@ def ThreadShowUIAndManageEvent():
     et_window_name.place(x=140, y=Entry_y_base + 45 * 3, width=175, height=30)
 
     et_goods_name = ttk.Entry(Top)
-    et_goods_name.place(x=490, y=Entry_y_base - 45 * 2, width=175, height=30)
+    et_goods_name.place(x=490, y=Label_y_base, width=175, height=30)
 
     et_highest_price = ttk.Entry(Top)
-    et_highest_price.place(x=490, y=Entry_y_base - 45 * 1, width=175, height=30)
+    et_highest_price.place(x=490, y=Label_y_base + 45 * 1, width=175, height=30)
 
     et_buy_amount = ttk.Entry(Top)
-    et_buy_amount.place(x=490, y=Entry_y_base, width=175, height=30)
+    et_buy_amount.place(x=490, y=Label_y_base + 45 * 2, width=175, height=30)
 
     et_max_buy_amount = ttk.Entry(Top)
-    et_max_buy_amount.place(x=490, y=Entry_y_base + 45 * 1, width=175, height=30)
+    et_max_buy_amount.place(x=490, y=Label_y_base + 45 * 3, width=175, height=30)
 
     et_single_purchase_max_amount = ttk.Entry(Top)
-    et_single_purchase_max_amount.place(x=490, y=Entry_y_base + 45 * 2, width=175, height=30)
+    et_single_purchase_max_amount.place(x=490, y=Label_y_base + 45 * 4, width=175, height=30)
 
     et_single_purchase_max_money_amount = ttk.Entry(Top)
-    et_single_purchase_max_money_amount.place(x=490, y=Entry_y_base + 45 * 3, width=175, height=30)
+    et_single_purchase_max_money_amount.place(x=490, y=Label_y_base + 45 * 5, width=175, height=30)
 
     et_same_goods_try_times = ttk.Entry(Top)
-    et_same_goods_try_times.place(x=490, y=Entry_y_base + 45 * 4, width=175, height=30)
+    et_same_goods_try_times.place(x=490, y=Label_y_base + 45 * 6, width=175, height=30)
 
     et_single_search_purchase_times = ttk.Entry(Top)
-    et_single_search_purchase_times.place(x=490, y=Entry_y_base + 45 * 5, width=175, height=30)
+    et_single_search_purchase_times.place(x=490, y=Label_y_base + 45 * 7, width=175, height=30)
+
+    et_wallet_password = ttk.Entry(Top, show="*")
+    et_wallet_password.place(x=490, y=Label_y_base + 45 * 8, width=175, height=30)
 
     # 先拿出之前的配置，启动先前的热键事件检测
     LpCounter = config.get("SAVE", ListCfg[0])
@@ -1013,6 +1023,7 @@ def ThreadShowUIAndManageEvent():
     et_single_purchase_max_money_amount_value = config.get("SAVE", ListCfg[9])
     et_same_goods_try_times_value = config.get("SAVE", ListCfg[10])
     et_single_search_purchase_times_value = config.get("SAVE", ListCfg[11])
+    et_wallet_password_value = config.get("SAVE", ListCfg[12])
     mylog('恢复上次设置的循环次数，', LpCounter)
     ETLoop.insert("insert", LpCounter)
     mylog('恢复上次设置的开始热键，', StartKey)
@@ -1027,6 +1038,7 @@ def ThreadShowUIAndManageEvent():
     et_single_purchase_max_money_amount.insert("insert", et_single_purchase_max_money_amount_value)
     et_same_goods_try_times.insert("insert", et_same_goods_try_times_value)
     et_single_search_purchase_times.insert("insert", et_single_search_purchase_times_value)
+    et_wallet_password.insert("insert", et_wallet_password_value)
     mylog('-恢复记录的购买数量-', et_buy_amount_value)
     et_buy_amount.insert("insert", et_buy_amount_value)
     mylog('-恢复记录的购买上限-', et_max_buy_amount_value)
@@ -1044,7 +1056,7 @@ def ThreadShowUIAndManageEvent():
             ETLoop.get(), ETStart.get(), ETStop.get(), et_window_name.get(), et_goods_name.get(),
             et_highest_price.get(), et_buy_amount.get(), et_max_buy_amount.get(), et_single_purchase_max_amount.get(),
             et_single_purchase_max_money_amount.get(),
-            et_same_goods_try_times.get(), et_single_search_purchase_times.get()
+            et_same_goods_try_times.get(), et_single_search_purchase_times.get(), et_wallet_password.get()
         ]
         mylog('配置更新, ListCfg:', ListCfgValue)
 
@@ -1082,10 +1094,10 @@ def ThreadShowUIAndManageEvent():
     # butt.place(x=25, y=250, width=120)
 
     butt = ttk.Button(Top, text="保存并刷新", style='W.TButton', command=UpdataCfg)
-    butt.place(x=20, y=Label_y_base + 45 * 7, width=145)
+    butt.place(x=20, y=Label_y_base + 45 * 8, width=145)
 
     butt2 = ttk.Button(Top, text="点击开始", style='W.TButton', command=Bbegin)
-    butt2.place(x=170, y=Label_y_base + 45 * 7, width=145)
+    butt2.place(x=170, y=Label_y_base + 45 * 8, width=145)
 
     Top.protocol("WM_DELETE_WINDOW", KillSelf)
     Top.mainloop()

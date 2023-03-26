@@ -107,7 +107,9 @@ check_amount = 0
 record_server_name = ''
 record_amount = 0
 record_price = 0
+record_money_amount = 0
 try_purchase_time = 1
+total_goods_amount = 0
 
 
 def resource_path(relative_path):
@@ -133,7 +135,7 @@ def threadSysCMD(InputCmd):
 #  @ 备注：PicName用于防止传进来的位置为空的情况进行重找(小概率)
 #         重新找3次 moveTo读不到位置会崩溃
 def Analysis(PicName, location):
-    global offseted, moved, JumpLine, check_amount, try_purchase_time
+    global offseted, moved, JumpLine, check_amount, try_purchase_time, total_goods_amount
 
     def ClickFilter():
         if PicName != 'None':
@@ -295,25 +297,23 @@ def Analysis(PicName, location):
             max_amount_of_single_time = int(split[2])
             max_amount = int(config.get("SAVE", ListCfg[4]))
 
-            single_goods_amount = get_single_goods_amount()
-            total_goods_amount = get_total_goods_amount(single_goods_amount)
-
-            is_amount_available = is_amount_available_for_purchase(
-                single_goods_amount, total_goods_amount, max_amount_of_single_time, max_amount)
-            if not is_amount_available:
-                pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
-                break
-            else:
-                save_total_goods_amount(total_goods_amount)
-
             is_amount_of_money_available = is_amount_of_money_available_for_purchase(max_amount_of_money_in_single_time)
-            if is_amount_of_money_available:
+            if not is_amount_of_money_available:
                 print('单次购买金额超过了限额，跳过并寻找其他符合的商品')
                 break
             is_price_available = is_price_available_for_purchase(price)
             if not is_price_available:
                 print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
                 break
+
+            single_goods_amount = get_single_goods_amount()
+            total_goods_amount = get_total_goods_amount(single_goods_amount)
+            is_amount_available = is_amount_available_for_purchase(
+                single_goods_amount, max_amount_of_single_time, max_amount)
+            if not is_amount_available:
+                pyautogui.alert(text='CMD: 购买量已达上限！', title=MSGWindowName)
+                break
+
         elif NowRowKey[local] == '尝试购买上限':
             max_check_amount = int(NowRowValue[local])
             check_amount = check_amount + 1
@@ -327,9 +327,9 @@ def Analysis(PicName, location):
                 print('检查当前搜索购买次数，超过设置重新搜索')
         elif NowRowKey[local] == '是否为同一商品':
             is_same = is_the_same_goods()
-            max_try_purchase_time = NowRowValue[local]
+            max_try_purchase_time = int(NowRowValue[local])
             if is_same:
-                try_purchase_time +=1
+                try_purchase_time += 1
                 if try_purchase_time > max_try_purchase_time:
                     print('同一商品，且超过最大尝试次数')
                 else:
@@ -338,7 +338,9 @@ def Analysis(PicName, location):
             else:
                 print('不同商品，可继续购买')
                 break
-        elif NowRowKey[local] == '添加记录':
+        elif NowRowKey[local] == '记录商品购买数量':
+            save_total_goods_amount()
+        elif NowRowKey[local] == '记录交易详情':
             record_purchase()
         else:
             mylog('CMD:', NowRowKey[local], '!! 未知指令', NowRowKey[local])
@@ -496,7 +498,8 @@ def set_game_window():
     :return:
     """
     window_control = WindowControl()
-    window_control.bind_by_name('MIRMG(2)')
+    window_name = config.get("SAVE", ListCfg[5])
+    window_control.bind_by_name(window_name)
     window_control.move(0, 0)
     window_control.resize(1550, 800)
 
@@ -520,21 +523,25 @@ def is_price_available_for_purchase(lowest_price):
 
 
 def is_the_same_goods():
-    global record_server_name, record_amount, record_price
+    global record_server_name, record_amount, record_price, record_money_amount
     server_name = FindNumberOrWord.get_by_coordinate(750, 900, 350, 450)
     price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     find_number = FindNumber()
+    money_amount = find_number.get_by_coordinate(1100, 1300, 350, 450)
     item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
 
     print('实际服务器名', server_name, '记录服务器名', record_server_name)
     print('实际价格', price, '记录价格', record_price)
+    print('实际金额', money_amount, '记录金额', record_money_amount)
     print('实际数量', item_amount, '记录数量', record_amount)
-    if server_name == record_server_name and price == record_price and item_amount == record_amount:
+    if server_name == record_server_name and price == record_price and\
+            item_amount == record_amount and money_amount == record_money_amount:
         return True
     else:
         record_server_name = server_name
         record_price = price
         record_amount = item_amount
+        record_money_amount = money_amount
         return False
 
 
@@ -544,16 +551,17 @@ def get_single_goods_amount():
 
 
 def get_total_goods_amount(single_goods_amount):
-    total_goods_amount = int(config.get("SAVE", ListCfg[3]))
-    total_goods_amount += single_goods_amount
-    return total_goods_amount
+    record_total_goods_amount = int(config.get("SAVE", ListCfg[3]))
+    return record_total_goods_amount + single_goods_amount
 
 
-def save_total_goods_amount(total_goods_amount):
-    config.set("SAVE", ListCfg[3], total_goods_amount)
+def save_total_goods_amount():
+    config.set("SAVE", ListCfg[3], str(total_goods_amount))
+    with open(CfgFile, "w+") as file:
+        config.write(file)
 
 
-def is_amount_available_for_purchase(single_goods_amount, total_goods_amount, single_max_amount, max_amount):
+def is_amount_available_for_purchase(single_goods_amount, single_max_amount, max_amount):
     print('商品数量', total_goods_amount, '单次最大购买', max_amount)
     print('总计购买商品', total_goods_amount, '总计商品限额', max_amount)
     return total_goods_amount < max_amount and single_goods_amount < single_max_amount
@@ -561,7 +569,8 @@ def is_amount_available_for_purchase(single_goods_amount, total_goods_amount, si
 
 def is_amount_of_money_available_for_purchase(max_amount_of_money):
     global single_amount_of_money
-    single_amount_of_money = FindNumberOrWord.get_by_coordinate(1100, 1300, 350, 450)
+    find_number = FindNumber()
+    single_amount_of_money = find_number.get_by_coordinate(1100, 1300, 350, 450)
     print('当前金额', single_amount_of_money)
 
     print('当前金额', single_amount_of_money, '最大金额限制', max_amount_of_money)
@@ -569,10 +578,15 @@ def is_amount_of_money_available_for_purchase(max_amount_of_money):
 
 
 def record_purchase():
-    global record_server_name, record_amount, record_price
-    file_name = './' + dt.datetime.now().strftime('%F') + '.txt'
+    if os.path.exists('records') is not True:
+        os.mkdir('records')
+    file_name = './records/' + dt.datetime.now().strftime('%F') + '.txt'
+    print(file_name)
     with open(file_name, 'a') as f:
-        print(dt.datetime.now().strftime('%F %T:%f'), record_server_name, record_amount, record_price, file=f)
+        print(dt.datetime.now().strftime('%F %T'),
+              record_server_name, record_amount, record_price, record_money_amount,
+              file=f)
+
 
 #  @ 功能：主要用于找图前的参数输入
 #  @ 参数：[I] :sheet 表格的sheet
@@ -749,7 +763,7 @@ ETStop = None
 LpCounter = 0
 StartKey = ''
 StopKey = ''
-ListCfg = ['loopcounter', 'starthotkey', 'stophotkey', 'goods_amount', 'max_goods_amount']  # 下拉栏是独立的
+ListCfg = ['loopcounter', 'starthotkey', 'stophotkey', 'goods_amount', 'max_goods_amount', 'window_name']  # 下拉栏是独立的
 XlsSource = None
 WorkPath = ''
 
@@ -786,8 +800,8 @@ def ThreadShowUIAndManageEvent():
     # Top.tk.call("set_theme", "dark")
     Top.geometry("350x395+10+16")
     # Top.resizable(False, False)  # 固定大小
-    Top.minsize(350, 395)  # 最小尺寸
-    Top.maxsize(450, 495)  # 最大尺寸
+    Top.minsize(350, 445)  # 最小尺寸
+    Top.maxsize(450, 545)  # 最大尺寸
     Top.iconbitmap(IconPath)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     # 调用api获得当前的缩放因子
@@ -917,6 +931,9 @@ def ThreadShowUIAndManageEvent():
     Lab = tk.Label(Top, text="最大购买数量:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=20, y=Label_y_base + 46 * 6)
 
+    Lab = tk.Label(Top, text="游戏窗口:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=20, y=Label_y_base + 46 * 7)
+
     Entry_y_base = 105
     # ETLoop = Entry(Top, bd=1)
     # ETLoop.place(x=145, y=Entry_y_base, width=50)
@@ -942,12 +959,16 @@ def ThreadShowUIAndManageEvent():
     et_max_buy_amount = ttk.Entry(Top)
     et_max_buy_amount.place(x=140, y=Entry_y_base + 45 * 4, width=175, height=30)
 
+    et_window_name = ttk.Entry(Top)
+    et_window_name.place(x=140, y=Entry_y_base + 45 * 5, width=175, height=30)
+
     # 先拿出之前的配置，启动先前的热键事件检测
     LpCounter = config.get("SAVE", ListCfg[0])
     StartKey = config.get("SAVE", ListCfg[1])
     StopKey = config.get("SAVE", ListCfg[2])
     et_buy_amount_value = config.get("SAVE", ListCfg[3])
     et_max_buy_amount_value = config.get("SAVE", ListCfg[4])
+    et_window_name_value = config.get("SAVE", ListCfg[5])
     mylog('恢复上次设置的循环次数，', LpCounter)
     ETLoop.insert("insert", LpCounter)
     mylog('恢复上次设置的开始热键，', StartKey)
@@ -958,6 +979,8 @@ def ThreadShowUIAndManageEvent():
     et_buy_amount.insert("insert", et_buy_amount_value)
     mylog('-恢复记录的购买上限-', et_max_buy_amount_value)
     et_max_buy_amount.insert("insert", et_max_buy_amount_value)
+    mylog('-恢复记录的操作窗口-', et_max_buy_amount_value)
+    et_window_name.insert("insert", et_window_name_value)
     mylog('-等待用户操作-')
     keyboard.add_hotkey(StartKey, begin_working)
     keyboard.add_hotkey(StopKey, finished_working)
@@ -967,7 +990,10 @@ def ThreadShowUIAndManageEvent():
         global LpCounter
         global StartKey
         global StopKey
-        ListCfgValue = [ETLoop.get(), ETStart.get(), ETStop.get(), et_buy_amount.get(), et_max_buy_amount.get()]
+        ListCfgValue = [
+            ETLoop.get(), ETStart.get(), ETStop.get(), et_buy_amount.get(),
+            et_max_buy_amount.get(), et_window_name.get()
+        ]
         mylog('配置更新, ListCfg:', ListCfgValue)
 
         # 实时更新使用端
@@ -1004,10 +1030,10 @@ def ThreadShowUIAndManageEvent():
     # butt.place(x=25, y=250, width=120)
 
     butt = ttk.Button(Top, text="保存并刷新", style='W.TButton', command=UpdataCfg)
-    butt.place(x=20, y=Label_y_base + 46 * 7, width=145)
+    butt.place(x=20, y=Label_y_base + 46 * 8, width=145)
 
     butt2 = ttk.Button(Top, text="点击开始", style='W.TButton', command=Bbegin)
-    butt2.place(x=170, y=Label_y_base + 46 * 7, width=145)
+    butt2.place(x=170, y=Label_y_base + 46 * 8, width=145)
 
     Top.protocol("WM_DELETE_WINDOW", KillSelf)
     Top.mainloop()

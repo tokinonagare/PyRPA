@@ -5,6 +5,7 @@ dist
 **__MACOSX
 __pycache__
 Screenshot
+records
 
 PyRPA.exe
 PyRPA.spec

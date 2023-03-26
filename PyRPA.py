@@ -85,7 +85,7 @@ SW_RESTORE：激活并显示窗口。如果窗口最小化或最大化，则系�
 DIR = os.path.dirname(__file__)  # 运行路径
 CfgFile = "./PyRPA.ini"
 config = configparser.ConfigParser()
-config.read(CfgFile)
+config.read(CfgFile, 'utf-8')
 
 today = time.strftime("%Y%m%d", time.localtime())
 log_file = 'PyRPA.log'
@@ -763,7 +763,11 @@ ETStop = None
 LpCounter = 0
 StartKey = ''
 StopKey = ''
-ListCfg = ['loopcounter', 'starthotkey', 'stophotkey', 'goods_amount', 'max_goods_amount', 'window_name']  # 下拉栏是独立的
+ListCfg = [
+    'loopcounter', 'starthotkey', 'stophotkey', 'window_name', 'goods_name',
+    'highest_price', 'goods_amount', 'max_goods_amount', 'single_purchase_max_money_amount', 'single_purchase_max_amount',
+    'same_goods_try_times', 'single_search_purchase_times'
+]  # 下拉栏是独立的
 XlsSource = None
 WorkPath = ''
 
@@ -800,8 +804,8 @@ def ThreadShowUIAndManageEvent():
     # Top.tk.call("set_theme", "dark")
     Top.geometry("350x395+10+16")
     # Top.resizable(False, False)  # 固定大小
-    Top.minsize(350, 445)  # 最小尺寸
-    Top.maxsize(450, 545)  # 最大尺寸
+    Top.minsize(690, 375)  # 最小尺寸
+    Top.maxsize(890, 465)  # 最大尺寸
     Top.iconbitmap(IconPath)
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
     # 调用api获得当前的缩放因子
@@ -925,14 +929,32 @@ def ThreadShowUIAndManageEvent():
     Lab = tk.Label(Top, text="停止热键:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=20, y=Label_y_base + 46 * 4)
 
-    Lab = tk.Label(Top, text="已购买数量:", font=("宋体", 14), fg=g_fg)
+    Lab = tk.Label(Top, text="游戏窗口:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=20, y=Label_y_base + 46 * 5)
 
-    Lab = tk.Label(Top, text="最大购买数量:", font=("宋体", 14), fg=g_fg)
-    Lab.place(x=20, y=Label_y_base + 46 * 6)
+    Lab = tk.Label(Top, text="商品名称:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base)
 
-    Lab = tk.Label(Top, text="游戏窗口:", font=("宋体", 14), fg=g_fg)
-    Lab.place(x=20, y=Label_y_base + 46 * 7)
+    Lab = tk.Label(Top, text="最高购买价格:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 1)
+
+    Lab = tk.Label(Top, text="已购买数量:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 2)
+
+    Lab = tk.Label(Top, text="最大购买数量:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 3)
+
+    Lab = tk.Label(Top, text="单次购买最大金额:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 4)
+
+    Lab = tk.Label(Top, text="单次购买最大数量:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 5)
+
+    Lab = tk.Label(Top, text="相同商品尝试次数:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 6)
+
+    Lab = tk.Label(Top, text="单次搜索购买次数:", font=("宋体", 14), fg=g_fg)
+    Lab.place(x=330, y=Label_y_base + 46 * 7)
 
     Entry_y_base = 105
     # ETLoop = Entry(Top, bd=1)
@@ -952,35 +974,64 @@ def ThreadShowUIAndManageEvent():
 
     # switch = ttk.Checkbutton(Top, text="Switch", style="Switch.TCheckbutton")
     # switch.place(x=140, y=Entry_y_base + 45 * 2)
+    et_window_name = ttk.Entry(Top)
+    et_window_name.place(x=140, y=Entry_y_base + 45 * 3, width=175, height=30)
+
+    et_goods_name = ttk.Entry(Top)
+    et_goods_name.place(x=490, y=Entry_y_base - 45 * 2, width=175, height=30)
+
+    et_highest_price = ttk.Entry(Top)
+    et_highest_price.place(x=490, y=Entry_y_base - 45 * 1, width=175, height=30)
 
     et_buy_amount = ttk.Entry(Top)
-    et_buy_amount.place(x=140, y=Entry_y_base + 45 * 3, width=175, height=30)
+    et_buy_amount.place(x=490, y=Entry_y_base, width=175, height=30)
 
     et_max_buy_amount = ttk.Entry(Top)
-    et_max_buy_amount.place(x=140, y=Entry_y_base + 45 * 4, width=175, height=30)
+    et_max_buy_amount.place(x=490, y=Entry_y_base + 45 * 1, width=175, height=30)
 
-    et_window_name = ttk.Entry(Top)
-    et_window_name.place(x=140, y=Entry_y_base + 45 * 5, width=175, height=30)
+    et_single_purchase_max_amount = ttk.Entry(Top)
+    et_single_purchase_max_amount.place(x=490, y=Entry_y_base + 45 * 2, width=175, height=30)
+
+    et_single_purchase_max_money_amount = ttk.Entry(Top)
+    et_single_purchase_max_money_amount.place(x=490, y=Entry_y_base + 45 * 3, width=175, height=30)
+
+    et_same_goods_try_times = ttk.Entry(Top)
+    et_same_goods_try_times.place(x=490, y=Entry_y_base + 45 * 4, width=175, height=30)
+
+    et_single_search_purchase_times = ttk.Entry(Top)
+    et_single_search_purchase_times.place(x=490, y=Entry_y_base + 45 * 5, width=175, height=30)
 
     # 先拿出之前的配置，启动先前的热键事件检测
     LpCounter = config.get("SAVE", ListCfg[0])
     StartKey = config.get("SAVE", ListCfg[1])
     StopKey = config.get("SAVE", ListCfg[2])
-    et_buy_amount_value = config.get("SAVE", ListCfg[3])
-    et_max_buy_amount_value = config.get("SAVE", ListCfg[4])
-    et_window_name_value = config.get("SAVE", ListCfg[5])
+    et_window_name_value = config.get("SAVE", ListCfg[3])
+    et_goods_name_value = config.get("SAVE", ListCfg[4])
+    et_highest_price_value = config.get("SAVE", ListCfg[5])
+    et_buy_amount_value = config.get("SAVE", ListCfg[6])
+    et_max_buy_amount_value = config.get("SAVE", ListCfg[7])
+    et_single_purchase_max_amount_value = config.get("SAVE", ListCfg[8])
+    et_single_purchase_max_money_amount_value = config.get("SAVE", ListCfg[9])
+    et_same_goods_try_times_value = config.get("SAVE", ListCfg[10])
+    et_single_search_purchase_times_value = config.get("SAVE", ListCfg[11])
     mylog('恢复上次设置的循环次数，', LpCounter)
     ETLoop.insert("insert", LpCounter)
     mylog('恢复上次设置的开始热键，', StartKey)
     ETStart.insert("insert", StartKey)
     mylog('恢复上次设置的停止热键，', StopKey)
     ETStop.insert("insert", StopKey)
+    mylog('-恢复记录的操作窗口-', et_window_name_value)
+    et_window_name.insert("insert", et_window_name_value)
+    et_goods_name.insert("insert", et_goods_name_value)
+    et_highest_price.insert("insert", et_highest_price_value)
+    et_single_purchase_max_amount.insert("insert", et_single_purchase_max_amount_value)
+    et_single_purchase_max_money_amount.insert("insert", et_single_purchase_max_money_amount_value)
+    et_same_goods_try_times.insert("insert", et_same_goods_try_times_value)
+    et_single_search_purchase_times.insert("insert", et_single_search_purchase_times_value)
     mylog('-恢复记录的购买数量-', et_buy_amount_value)
     et_buy_amount.insert("insert", et_buy_amount_value)
     mylog('-恢复记录的购买上限-', et_max_buy_amount_value)
     et_max_buy_amount.insert("insert", et_max_buy_amount_value)
-    mylog('-恢复记录的操作窗口-', et_max_buy_amount_value)
-    et_window_name.insert("insert", et_window_name_value)
     mylog('-等待用户操作-')
     keyboard.add_hotkey(StartKey, begin_working)
     keyboard.add_hotkey(StopKey, finished_working)
@@ -1030,10 +1081,10 @@ def ThreadShowUIAndManageEvent():
     # butt.place(x=25, y=250, width=120)
 
     butt = ttk.Button(Top, text="保存并刷新", style='W.TButton', command=UpdataCfg)
-    butt.place(x=20, y=Label_y_base + 46 * 8, width=145)
+    butt.place(x=20, y=Label_y_base + 45 * 7, width=145)
 
     butt2 = ttk.Button(Top, text="点击开始", style='W.TButton', command=Bbegin)
-    butt2.place(x=170, y=Label_y_base + 46 * 8, width=145)
+    butt2.place(x=170, y=Label_y_base + 45 * 7, width=145)
 
     Top.protocol("WM_DELETE_WINDOW", KillSelf)
     Top.mainloop()

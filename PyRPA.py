@@ -291,17 +291,16 @@ def Analysis(PicName, location):
         elif NowRowKey[local] == '音频' or NowRowKey[local] == '音乐' or NowRowKey[local] == '播放':
             playsound(".\\Source\\" + NowRowValue[local])
         elif NowRowKey[local] == '购买':
-            split = re.split('/', NowRowValue[local])
-            price = float(split[0])
-            max_amount_of_money_in_single_time = float(split[1])
-            max_amount_of_single_time = int(split[2])
-            max_amount = int(config.get("SAVE", ListCfg[4]))
+            highest_price = float(config.get("SAVE", ListCfg[5]))
+            max_amount = int(config.get("SAVE", ListCfg[7]))
+            max_amount_of_single_time = int(config.get("SAVE", ListCfg[8]))
+            max_amount_of_money_in_single_time = float(config.get("SAVE", ListCfg[9]))
 
             is_amount_of_money_available = is_amount_of_money_available_for_purchase(max_amount_of_money_in_single_time)
             if not is_amount_of_money_available:
                 print('单次购买金额超过了限额，跳过并寻找其他符合的商品')
                 break
-            is_price_available = is_price_available_for_purchase(price)
+            is_price_available = is_price_available_for_purchase(highest_price)
             if not is_price_available:
                 print('价格超过了最低购买价, 跳过并寻找其他符合的商品')
                 break
@@ -315,7 +314,7 @@ def Analysis(PicName, location):
                 break
 
         elif NowRowKey[local] == '尝试购买上限':
-            max_check_amount = int(NowRowValue[local])
+            max_check_amount = int(config.get("SAVE", ListCfg[11]))
             check_amount = check_amount + 1
             print('当前搜索尝试购买次数', check_amount, '当前搜索尝试购买次数上限', max_check_amount)
             if check_amount <= max_check_amount:
@@ -327,7 +326,7 @@ def Analysis(PicName, location):
                 print('检查当前搜索购买次数，超过设置重新搜索')
         elif NowRowKey[local] == '是否为同一商品':
             is_same = is_the_same_goods()
-            max_try_purchase_time = int(NowRowValue[local])
+            max_try_purchase_time = int(config.get("SAVE", ListCfg[10]))
             if is_same:
                 try_purchase_time += 1
                 if try_purchase_time > max_try_purchase_time:
@@ -765,7 +764,7 @@ StartKey = ''
 StopKey = ''
 ListCfg = [
     'loopcounter', 'starthotkey', 'stophotkey', 'window_name', 'goods_name',
-    'highest_price', 'goods_amount', 'max_goods_amount', 'single_purchase_max_money_amount', 'single_purchase_max_amount',
+    'highest_price', 'buy_amount', 'max_buy_amount', 'single_purchase_max_money_amount', 'single_purchase_max_amount',
     'same_goods_try_times', 'single_search_purchase_times'
 ]  # 下拉栏是独立的
 XlsSource = None
@@ -1042,8 +1041,10 @@ def ThreadShowUIAndManageEvent():
         global StartKey
         global StopKey
         ListCfgValue = [
-            ETLoop.get(), ETStart.get(), ETStop.get(), et_buy_amount.get(),
-            et_max_buy_amount.get(), et_window_name.get()
+            ETLoop.get(), ETStart.get(), ETStop.get(), et_window_name.get(), et_goods_name.get(),
+            et_highest_price.get(), et_buy_amount.get(), et_max_buy_amount.get(), et_single_purchase_max_amount.get(),
+            et_single_purchase_max_money_amount.get(),
+            et_same_goods_try_times.get(), et_single_search_purchase_times.get()
         ]
         mylog('配置更新, ListCfg:', ListCfgValue)
 

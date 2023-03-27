@@ -85,7 +85,7 @@ SW_RESTORE：激活并显示窗口。如果窗口最小化或最大化，则系�
 DIR = os.path.dirname(__file__)  # 运行路径
 CfgFile = "./PyRPA.ini"
 config = configparser.ConfigParser()
-config.read(CfgFile, 'utf-8')
+config.read(CfgFile)
 
 today = time.strftime("%Y%m%d", time.localtime())
 log_file = 'PyRPA.log'
@@ -501,7 +501,7 @@ def set_game_window():
     :return:
     """
     window_control = WindowControl()
-    window_name = config.get("SAVE", ListCfg[5])
+    window_name = config.get("SAVE", ListCfg[3])
     window_control.bind_by_name(window_name)
     window_control.move(0, 0)
     window_control.resize(1550, 800)
@@ -554,18 +554,18 @@ def get_single_goods_amount():
 
 
 def get_total_goods_amount(single_goods_amount):
-    record_total_goods_amount = int(config.get("SAVE", ListCfg[3]))
+    record_total_goods_amount = int(config.get("SAVE", ListCfg[6]))
     return record_total_goods_amount + single_goods_amount
 
 
 def save_total_goods_amount():
-    config.set("SAVE", ListCfg[3], str(total_goods_amount))
+    config.set("SAVE", ListCfg[6], str(total_goods_amount))
     with open(CfgFile, "w+") as file:
         config.write(file)
 
 
 def is_amount_available_for_purchase(single_goods_amount, single_max_amount, max_amount):
-    print('商品数量', total_goods_amount, '单次最大购买', max_amount)
+    print('商品数量', single_goods_amount, '单次最大购买', single_max_amount)
     print('总计购买商品', total_goods_amount, '总计商品限额', max_amount)
     return total_goods_amount < max_amount and single_goods_amount < single_max_amount
 
@@ -601,17 +601,17 @@ def workspace(sheet):
     else:
         return
     CurrentROW = 1
+
+    # 调整好游戏窗口
+    set_game_window()
+
+    # 调整好模拟器窗口
+    set_simulator_window()
+
     while CurrentROW < sheet.nrows and running == 1:
         if sheet.row(CurrentROW)[1].value == 1:  # 该行是否启用
             mylog('--------------work start--------------')
             mylog('EXCEL ROW ', CurrentROW + 1)
-
-            # 调整好游戏窗口
-            set_game_window()
-
-            # 调整好模拟器窗口
-            set_simulator_window()
-
             time.sleep(0.5)
 
             # price = sheet.row(CurrentROW)[7].value
@@ -768,7 +768,7 @@ StartKey = ''
 StopKey = ''
 ListCfg = [
     'loopcounter', 'starthotkey', 'stophotkey', 'window_name', 'goods_name',
-    'highest_price', 'buy_amount', 'max_buy_amount', 'single_purchase_max_money_amount', 'single_purchase_max_amount',
+    'highest_price', 'buy_amount', 'max_buy_amount',  'single_purchase_max_amount', 'single_purchase_max_money_amount',
     'same_goods_try_times', 'single_search_purchase_times', 'wallet_password'
 ]  # 下拉栏是独立的
 XlsSource = None
@@ -947,10 +947,10 @@ def ThreadShowUIAndManageEvent():
     Lab = tk.Label(Top, text="最大购买数量:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=330, y=Label_y_base + 46 * 3)
 
-    Lab = tk.Label(Top, text="单次购买最大金额:", font=("宋体", 14), fg=g_fg)
+    Lab = tk.Label(Top, text="单次购买最大数量:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=330, y=Label_y_base + 46 * 4)
 
-    Lab = tk.Label(Top, text="单次购买最大数量:", font=("宋体", 14), fg=g_fg)
+    Lab = tk.Label(Top, text="单次购买最大金额:", font=("宋体", 14), fg=g_fg)
     Lab.place(x=330, y=Label_y_base + 46 * 5)
 
     Lab = tk.Label(Top, text="相同商品尝试次数:", font=("宋体", 14), fg=g_fg)

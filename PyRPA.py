@@ -28,6 +28,7 @@ import win32console
 import win32ui
 from playsound import playsound
 
+import CustomNumber
 import FindNumberOrWord
 # 识别数字相关依赖
 from Window import WindowControl
@@ -521,7 +522,7 @@ def set_simulator_window():
 def is_price_available_for_purchase(lowest_price):
     actual_price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     print(actual_price)
-    if not actual_price.isdigit():
+    if not CustomNumber.is_number(actual_price):
         print('识别的到的字符不是数字, 返回价格不合法')
         return False
     print('实际价格', float(actual_price), '最低价格', lowest_price)
@@ -534,7 +535,7 @@ def is_the_same_goods():
     price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     find_number = FindNumber()
     money_amount = find_number.get_by_coordinate(1100, 1300, 350, 450)
-    item_amount = find_number.get_by_coordinate(280, 325, 400, 445)
+    item_amount = find_number.get_by_coordinate(250, 325, 400, 445)
 
     print('实际服务器名', server_name, '记录服务器名', record_server_name)
     print('实际价格', price, '记录价格', record_price)
@@ -553,7 +554,7 @@ def is_the_same_goods():
 
 def get_single_goods_amount():
     find_number = FindNumber()
-    return find_number.get_by_coordinate(280, 325, 400, 445)
+    return find_number.get_by_coordinate(250, 325, 400, 445)
 
 
 def get_total_goods_amount(single_goods_amount):

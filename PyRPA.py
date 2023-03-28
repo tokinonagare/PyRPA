@@ -521,6 +521,9 @@ def set_simulator_window():
 def is_price_available_for_purchase(lowest_price):
     actual_price = FindNumberOrWord.get_by_coordinate(900, 1100, 350, 450)
     print(actual_price)
+    if not actual_price.isdigit():
+        print('识别的到的字符不是数字, 返回价格不合法')
+        return False
     print('实际价格', float(actual_price), '最低价格', lowest_price)
     return float(actual_price) < lowest_price
 
@@ -602,23 +605,15 @@ def workspace(sheet):
         return
     CurrentROW = 1
 
-    # 调整好游戏窗口
-    set_game_window()
-
-    # 调整好模拟器窗口
-    set_simulator_window()
-
     while CurrentROW < sheet.nrows and running == 1:
         if sheet.row(CurrentROW)[1].value == 1:  # 该行是否启用
             mylog('--------------work start--------------')
             mylog('EXCEL ROW ', CurrentROW + 1)
             time.sleep(0.5)
 
-            # price = sheet.row(CurrentROW)[7].value
-            # if price is not None:  # 因为价格判断和点击本身没任何关系
-            #     is_available = is_available_for_purchase(price)
-            #     print('是否可购买', is_available)
-            #     return
+            # 调整好游戏窗口 & 调整好模拟器窗口
+            set_game_window()
+            set_simulator_window()
 
             SourceStr = sheet.row(CurrentROW)[6].value
             mylog('EXCEL Str: ', SourceStr)
